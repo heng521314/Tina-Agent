@@ -1,0 +1,9 @@
+{
+  "env": {
+    "model": "You model",
+    "api_key": "api_key",
+    "base_url": "url",
+    "temperature": 0,
+    "max_retries": 10
+  }
+}
