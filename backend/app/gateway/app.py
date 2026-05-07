@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.gateway.routers import models, suggestions
+from backend.app.gateway.routers import models, suggestions, uploads
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
 
     app.include_router(models.router)
     app.include_router(suggestions.router)
+    app.include_router(uploads.router)
 
     @app.get("/health")
     async def health_check() -> dict:
