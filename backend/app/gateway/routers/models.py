@@ -68,7 +68,7 @@ async def chat_message(
         request: ChatRequest
 ) -> Generator[StreamEvent, None, None]:
     """
-    basic chat interface
+    basic chat interface support call tool
     args:
         thread_id: 请求id
         model: 模型名称
