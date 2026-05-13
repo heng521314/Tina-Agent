@@ -1,5 +1,6 @@
 __all__ = [
     "models",
     "suggestions",
-    "uploads"
+    "uploads",
+    "skills"
 ]

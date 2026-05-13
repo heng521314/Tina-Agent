@@ -3,6 +3,7 @@ import logging
 from typing import Any
 from pathlib import Path
 from pydantic import BaseModel, Field
+from backend.tina.config.paths import IMAGE_PATH
 from fastapi import APIRouter, HTTPException, File, UploadFile
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,6 @@ router = APIRouter(prefix='/api/{thread_id}', tags=["uploads"])
 
 UTF8 = 'utf-8'
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
-root = Path(__file__).parent.parent.parent.parent.parent / "images"
 
 
 class UploadResponse(BaseModel):
@@ -21,7 +21,7 @@ class UploadResponse(BaseModel):
 
 # 获取上传文件夹路径
 def get_upload_dir(thread_id: str) -> Path:
-    upload_path = root / thread_id
+    upload_path = IMAGE_PATH / thread_id
     if not upload_path.exists():
         upload_path.mkdir(parents=True, exist_ok=True)
     return upload_path
@@ -29,7 +29,7 @@ def get_upload_dir(thread_id: str) -> Path:
 
 # 查看文件是否存在
 def check_file_exist(thread_id: str, file_name: str) -> Path | None:
-    path = root / thread_id
+    path = IMAGE_PATH / thread_id
     if not path.exists():
         logger.info(f"{path} not found")
         return None

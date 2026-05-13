@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable
 from langchain.agents.middleware import (
     dynamic_prompt, ModelRequest, ModelResponse, before_model, Runtime, AgentState, wrap_model_call
@@ -5,7 +6,7 @@ from langchain.agents.middleware import (
 from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langchain.messages import RemoveMessage
 from backend.tina.tools import web_search
-import logging
+from backend.tina.config import get_skills_prompt_section
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 def dynamic_prompt(request: ModelRequest):
     # 获取传递上下文
     llm_role = request.runtime.context.get("mode", "plan")
+    skill_prompt = get_skills_prompt_section()
     prompt = "You are tina a useful assistant."
     # 计划模式
     if llm_role == "plan":
@@ -23,10 +25,12 @@ def dynamic_prompt(request: ModelRequest):
         1.先思考，不要立即动手写
         2.保持计划简洁性，易用性
         3.制定计划时不要说废话，只说与用户问题最相关的
+        {skill_prompt}
         """
     elif llm_role == "build":
         return f"""{prompt}，你可以根据用户已经设计好的计划，解决问题，当用户没有提供计划时，你必须先思考再制定计划，再执行
         你可以调用任何对你有帮助的工具
+        {skill_prompt}
         """
     return prompt
 
