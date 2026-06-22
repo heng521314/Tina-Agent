@@ -5,7 +5,7 @@ from typing import Any, Generator
 from backend.tina.models.base_factory import create_custom_agent, ModeContext
 from uuid import uuid4
 
-router = APIRouter(prefix="/api", tags=['models'])
+router = APIRouter(prefix="/api", tags=["models"])
 
 
 class ChatRequest(BaseModel):
@@ -61,12 +61,8 @@ def _extract_text(content) -> str:
     return str(content)
 
 
-@router.post(
-    "/chat",
-)
-async def chat_message(
-        request: ChatRequest
-) -> Generator[StreamEvent, None, None]:
+@router.post("/chat", response_model=StreamEvent)
+async def chat_message(request: ChatRequest) -> Generator[StreamEvent, None, None]:
     """
     basic chat interface support call tool
     args:
@@ -106,10 +102,17 @@ async def chat_message(
 
     state = {"messages": [HumanMessage(request.message.strip())]}
     seen_ids: set[str] = set()
-    cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+    cumulative_usage: dict[str, int] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+    }
     agent = create_custom_agent()
-    for chunk in agent.stream(state, context=ModeContext(mode="build", thread_id=request.thread_id),
-                              stream_mode="values"):
+    for chunk in agent.stream(
+        state,
+        context=ModeContext(mode="build", thread_id=request.thread_id),
+        stream_mode="values",
+    ):
         messages = chunk.get("messages", [])
         for msg in messages:
             msg_id = getattr(msg, "id", None)
@@ -122,9 +125,15 @@ async def chat_message(
                 # Track token usage from AI messages
                 usage = getattr(msg, "usage_metadata", None)
                 if usage:
-                    cumulative_usage["input_tokens"] += usage.get("input_tokens", 0) or 0
-                    cumulative_usage["output_tokens"] += usage.get("output_tokens", 0) or 0
-                    cumulative_usage["total_tokens"] += usage.get("total_tokens", 0) or 0
+                    cumulative_usage["input_tokens"] += (
+                        usage.get("input_tokens", 0) or 0
+                    )
+                    cumulative_usage["output_tokens"] += (
+                        usage.get("output_tokens", 0) or 0
+                    )
+                    cumulative_usage["total_tokens"] += (
+                        usage.get("total_tokens", 0) or 0
+                    )
 
                 if msg.tool_calls:
                     yield StreamEvent(
@@ -133,14 +142,24 @@ async def chat_message(
                             "type": "ai",
                             "content": "",
                             "id": msg_id,
-                            "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in
-                                           msg.tool_calls],
+                            "tool_calls": [
+                                {
+                                    "name": tc["name"],
+                                    "args": tc["args"],
+                                    "id": tc.get("id"),
+                                }
+                                for tc in msg.tool_calls
+                            ],
                         },
                     )
 
                 text = _extract_text(msg.content)
                 if text:
-                    event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
+                    event_data: dict[str, Any] = {
+                        "type": "ai",
+                        "content": text,
+                        "id": msg_id,
+                    }
                     if usage:
                         event_data["usage_metadata"] = {
                             "input_tokens": usage.get("input_tokens", 0) or 0,

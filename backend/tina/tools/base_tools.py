@@ -1,47 +1,66 @@
 import requests
-from datetime import datetime
+import logging
 from ddgs import DDGS
-from typing import Any, AnyStr
+from typing import Any
 from pathlib import Path
-from glob import glob
+from datetime import datetime
+from langchain.tools import tool, BaseTool
 from markdownify import markdownify
+from backend.tina.skills import load_skills
+from backend.tina.config import SKILL_PATH
 
 UTF8 = "utf-8"
+logger = logging.getLogger(__name__)
 
 
-def read_file(filepath: Path) -> str:
+def run_cmd(command: list[str]) -> str:
+    import subprocess
+
+    result = subprocess.run(
+        command, text=True, capture_output=True, check=True, shell=True
+    )
+    return result.stdout.strip()
+
+
+@tool
+def read_file(filepath: Path | str = "") -> str:
     """base filepath read file content"""
-    if not filepath.exists():
-        return "file path not found."
-    content = filepath.read_text(encoding=UTF8)
-    return content.strip()
+    logger.info("调用read_file工具")
+    content: str = ""
+    try:
+        if isinstance(filepath, Path):
+            content = filepath.read_text(encoding=UTF8)
+        elif isinstance(filepath, str):
+            with open(filepath, "r", encoding=UTF8) as f:
+                content = f.read()
+        return content.strip()
+    except Exception as e:
+        return f"读取{filepath}失败：{e}"
 
 
+@tool
 def write_file(filename: str, content: str | bytes) -> str:
     """write content"""
+    logger.info("调用write_file工具")
     try:
         root = Path(__file__).parent / filename
         if isinstance(content, str):
             root.write_text(content, encoding=UTF8)
         elif isinstance(content, bytes):
             root.write_bytes(content)
-        return "write file"
+        return f"write file {filename} success"
     except Exception as e:
-        raise e
-
-
-def glob_file(pattern: str) -> list[AnyStr]:
-    """base pattern match file"""
-    return glob(pattern)
+        return f"write file {filename} fail：{e}"
 
 
 # 定义查询天气函数
+@tool
 def get_weather(city: str) -> str:
     """
     通过wttr.in查询用户指定的天气信息
     city: 查询的城市
     """
-    print(f'查询城市: {city}')
+    logger.info(f"调用weather工具: {city}")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
@@ -57,10 +76,10 @@ def get_weather(city: str) -> str:
         data = response.json()
 
         # 提取当前天气状况
-        current_condition = data['current_condition'][0]
-        weather_desc = current_condition['weatherDesc'][0]['value']
-        temp_c = current_condition['temp_C']
-        uv_index = current_condition['uvIndex']
+        current_condition = data["current_condition"][0]
+        weather_desc = current_condition["weatherDesc"][0]["value"]
+        temp_c = current_condition["temp_C"]
+        uv_index = current_condition["uvIndex"]
 
         # 格式化成自然语言返回
         return f"{city} 当前天气:{weather_desc}，气温{temp_c}摄氏度，防晒指数{uv_index}"
@@ -74,26 +93,44 @@ def get_weather(city: str) -> str:
 
 
 # 查询当前日期时间
+@tool
 def get_date() -> str:
-    '''query current date'''
+    """query current datetime"""
+    logger.info("调用get_date工具")
     return datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
 
-def run_command(command: str) -> str:
-    """run external command"""
-    import subprocess
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    return result.stdout.strip()
+@tool
+def glob(pattern: list[str]) -> str:
+    """
+    Use ripgrep to find code snippets or keywords, with support for regular expressions; it’s best to provide the absolute path to the file.
+    e.g. ['rg','-i' 'hello', 'base_tools.py']
+    """
+    try:
+        result = run_cmd(pattern)
+        return result
+    except Exception as e:
+        logger.info(f"error: {e}")
 
 
+@tool
+def run_command(command: list[str]) -> str:
+    """
+    Execute external commands,Support native terminal commands; when using PowerShell, the prefix "powershell" must be added.
+    e.g. ['powershell', 'ls'], ['node','-v']
+    """
+    logger.info("调用run_command工具")
+    try:
+        result = run_cmd(command)
+        return result
+    except Exception as e:
+        return f"error：{e}"
+
+
+@tool
 def web_search(
-        query: str,
-        max_results: int = 5,
+    query: str,
+    max_results: int = 5,
 ) -> list[dict[str, Any]]:
     """
     base query keyword search result.
@@ -104,42 +141,30 @@ def web_search(
         A list of dictionaries containing the search results.
     """
     ddgs = DDGS()
-    return ddgs.text(
-        query=query,
-        max_results=max_results,
-        backend="bing"
-    )
+    return ddgs.text(query=query, max_results=max_results, backend="bing")
 
 
+@tool
 def search_image(
-        query: str,
-        max_results: int = 5,
-        color: str | None = None
+    query: str, max_results: int = 5, color: str | None = None
 ) -> list[dict[str, Any]]:
     """
-   base query keyword search image.
-    Args:
-        query: search keyword
-        max_results: query max num
-        color: style, feel
-    returns
-        A list of dictionaries containing the search results.
+    base query keyword search image.
+     Args:
+         query: search keyword
+         max_results: query max num
+         color: style, feel
+     returns
+         A list of dictionaries containing the search results.
     """
     ddgs = DDGS()
     return ddgs.images(
-        query=query,
-        page=1,
-        max_results=max_results,
-        backend="bing",
-        color=color
+        query=query, page=1, max_results=max_results, backend="bing", color=color
     )
 
 
-def send_request_response_markdown(
-        url: str,
-        method: str = "GET",
-        **kwargs
-) -> Any:
+@tool
+def send_request_response_markdown(url: str, method: str = "GET", **kwargs) -> Any:
     """
     send request to url response text
     args
@@ -150,8 +175,8 @@ def send_request_response_markdown(
         timeout: timeout default 5s
         kwargs: args
     """
-    kwargs['headers'] = {
-        "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    kwargs["headers"] = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     request = requests.request(
         method=method,
@@ -162,11 +187,8 @@ def send_request_response_markdown(
     return markdownify(request.text)
 
 
-def send_request_response_bytes(
-        url: str,
-        method: str = "GET",
-        **kwargs
-) -> bytes:
+@tool
+def send_request_response_bytes(url: str, method: str = "GET", **kwargs) -> bytes:
     """
     send request to url
     args
@@ -174,7 +196,7 @@ def send_request_response_bytes(
         method: method (e.g., GET, POST, PUT, DELETE) default GET
         kwargs: args
     """
-    kwargs['headers'] = {
+    kwargs["headers"] = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     request = requests.request(
@@ -186,13 +208,32 @@ def send_request_response_bytes(
     return request.content
 
 
-def get_all_tool() -> list:
+@tool
+def load_skill(skill_name: str) -> str:
+    """
+    load the full content of a skill into the agents context
+    args:
+        skill_name: The name of the skill to load (e.g "web-design")
+    """
+    # 加载所有skill
+    logger.info("调用load_skill工具")
+    skills = load_skills(SKILL_PATH)
+    for skill in skills:
+        if skill.name == skill_name:
+            return f"Loaded skill: {skill_name}\n\n{skill.content}"
+    available = ", ".join([s.name for s in skills])
+    return f"{skill_name} not Found. available skills: {available}"
+
+
+def get_all_tool() -> list[BaseTool]:
     return [
         read_file,
         write_file,
         get_date,
+        glob,
         get_weather,
         run_command,
         web_search,
-        send_request_response_markdown
+        send_request_response_markdown,
+        load_skill,
     ]

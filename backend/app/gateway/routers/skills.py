@@ -29,9 +29,7 @@ def check_skill_dir() -> Path:
     "/install",
     response_model=SkillResponse,
 )
-async def install_skill(
-        file: UploadFile = File(...)
-):
+async def install_skill(file: UploadFile = File(...)):
     """
     install skill zip
     args:
@@ -46,11 +44,11 @@ async def install_skill(
     if not file:
         raise HTTPException(status_code=401, detail="未发现文件")
 
-    if not file.filename.endswith(('.zip', '.tar')):
+    if not file.filename.endswith((".zip", ".tar")):
         raise HTTPException(status_code=401, detail="文件后缀错误")
-
+    # 获取存放skill文件夹
     skill_path = check_skill_dir()
-
+    # 创建临时文件夹
     with TemporaryDirectory() as tmpdir:
         temp_path = Path(tmpdir) / file.filename
         content = await file.read()
@@ -60,8 +58,12 @@ async def install_skill(
             if total_size > 100 * 1024 * 1024:
                 raise ValueError("Skill archive too large when extracted (>100MB)")
             for info in zf.infolist():
-                if Path(info.filename).is_absolute() or ".." in Path(info.filename).parts:
+                if (
+                    Path(info.filename).is_absolute()
+                    or ".." in Path(info.filename).parts
+                ):
                     raise ValueError(f"Unsafe path in archive: {info.filename}")
+            # 提取压缩包中的所有内容
             zf.extractall(skill_path)
             # 验证skill文件是否有效
             file_name = file.filename.split(".")[0]
@@ -83,9 +85,7 @@ async def install_skill(
     "/uninstall/{skill_name}",
     response_model=SkillResponse,
 )
-async def remove_skill(
-        skill_name: str
-) -> SkillResponse:
+async def remove_skill(skill_name: str) -> SkillResponse:
     """
     delete skill
     args:
@@ -118,11 +118,8 @@ async def remove_skill(
     )
 
 
-@router.get(
-    "/list"
-)
+@router.get("/list")
 async def list_skill() -> list[Skill]:
     """list all skill"""
     skill_list = load_skills(SKILL_PATH)
     return skill_list
-

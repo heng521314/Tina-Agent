@@ -1,4 +1,5 @@
 """根据最近聊天记录生成个性化建议"""
+
 import logging
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -11,7 +12,7 @@ default: list[str] = [
 ]
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/{thread_id}", tags=['suggestions'])
+router = APIRouter(prefix="/api/{thread_id}", tags=["suggestions"])
 
 
 class SuggestionMessage(BaseModel):
@@ -21,7 +22,9 @@ class SuggestionMessage(BaseModel):
 
 class SuggestionRequest(BaseModel):
     messages: list[SuggestionMessage]
-    N: int = Field(default=3, ge=1, le=5, description="number of suggestion to generate")
+    N: int = Field(
+        default=3, ge=1, le=5, description="number of suggestion to generate"
+    )
 
 
 class SuggestionResponse(BaseModel):
@@ -41,13 +44,8 @@ def _format_message(messages: list[SuggestionMessage]):
     return "\n".join(parts).strip()
 
 
-@router.post(
-    "/suggestions",
-    response_model=SuggestionResponse
-)
-async def generate_suggestion(
-        request: SuggestionRequest
-) -> SuggestionResponse:
+@router.post("/suggestions", response_model=SuggestionResponse)
+async def generate_suggestion(request: SuggestionRequest) -> SuggestionResponse:
     """
     根据用户最近的聊天生成建议
     args:
@@ -92,6 +90,4 @@ async def generate_suggestion(
     for c in llm_resp.content.split("\n"):
         suggestion_list.append(c)
 
-    return SuggestionResponse(
-        suggestions=suggestion_list
-    )
+    return SuggestionResponse(suggestions=suggestion_list)

@@ -6,5 +6,5 @@ __all__ = [
     "parse_model_config",
     "SKILL_PATH",
     "IMAGE_PATH",
-    "get_skills_prompt_section"
+    "get_skills_prompt_section",
 ]

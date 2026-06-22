@@ -1,5 +1,4 @@
 from backend.tina.skills import load_skills
-from backend.tina.config import SKILL_PATH
 
 
 def get_skills_prompt_section() -> str:
@@ -28,6 +27,8 @@ def get_skills_prompt_section() -> str:
         3. The skill file contains references to external resources under the same folder
         4. Load referenced resources only when needed during execution
         5. Follow the skill's instructions precisely
+        6. If you want to know more about a skill, you need to use the `load_skill` tool and provide the name of the skill.
+        7. Even if the user task has a 1% relevance to the skill, the skill will be invoked immediately.
         
         **Skills are located at:** 
         

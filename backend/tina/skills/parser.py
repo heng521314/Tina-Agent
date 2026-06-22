@@ -6,8 +6,10 @@ from dataclasses import dataclass
 @dataclass
 class Skill:
     """Represents a skill with its metadata and file path"""
+
     name: str
     description: str
+    content: str
     license: str | None
     skill_dir: Path
     skill_file: Path
@@ -33,6 +35,8 @@ def parse_skill_file(skill_file: Path) -> Skill | None:
         # Extract YAML front matter
         # Pattern: ---\nkey: value\n---
         front_matter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+        # Extract Skill content
+        skill_content = re.split("---", content, 3)
 
         if not front_matter_match:
             return None
@@ -52,7 +56,6 @@ def parse_skill_file(skill_file: Path) -> Skill | None:
         # Extract required fields
         name = metadata.get("name")
         description = metadata.get("description")
-
         if not name or not description:
             return None
 
@@ -61,6 +64,7 @@ def parse_skill_file(skill_file: Path) -> Skill | None:
         return Skill(
             name=name,
             description=description,
+            content=skill_content[2].strip(),
             license=license_text,
             skill_dir=skill_file.parent,
             skill_file=skill_file,

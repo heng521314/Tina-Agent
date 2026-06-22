@@ -1,6 +1,1 @@
-__all__ = [
-    "models",
-    "suggestions",
-    "uploads",
-    "skills"
-]
+__all__ = ["models", "suggestions", "uploads", "skills"]

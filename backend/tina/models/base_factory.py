@@ -1,9 +1,10 @@
 """模型工厂"""
+
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from typing import TypedDict
 from backend.tina.config.model_config import parse_model_config
-from backend.tina.tools.base_tools import get_all_tool
+from backend.tina.tools.base_tools import get_all_tool, glob
 from backend.tina.middleware import trim_messages, dynamic_prompt, interceptor_tool
 
 # get all tools
@@ -16,10 +17,8 @@ class ModeContext(TypedDict):
 
 
 def create_chat_model() -> ChatOpenAI:
-    config = parse_model_config()['env']
-    llm = ChatOpenAI(
-        **config
-    )
+    config = parse_model_config()["env"]
+    llm = ChatOpenAI(**config)
     return llm
 
 

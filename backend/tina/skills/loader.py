@@ -1,6 +1,6 @@
 from pathlib import Path
-from backend.tina.skills.parser import parse_skill_file
-from backend.tina.config.paths import SKILL_PATH
+from backend.tina.skills import parse_skill_file
+from backend.tina.config import SKILL_PATH
 
 
 def load_skills(skills_path: Path | None = None, enabled_only: bool = False) -> list:

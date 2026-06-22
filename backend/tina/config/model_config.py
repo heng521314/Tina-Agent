@@ -17,8 +17,8 @@ def _validata_config():
 def parse_model_config() -> str | dict:
     is_validate = _validata_config()
     if is_validate:
-        with open(model_path, 'r') as f:
+        with open(model_path, "r") as f:
             data: dict[str, dict[str, Any]] = json.load(f)
         return data
     else:
-        return f'配置文件创建在{model_path},配置后使用'
+        return f"配置文件创建在{model_path},配置后使用"

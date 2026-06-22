@@ -7,9 +7,9 @@ from backend.tina.config.paths import IMAGE_PATH
 from fastapi import APIRouter, HTTPException, File, UploadFile
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix='/api/{thread_id}', tags=["uploads"])
+router = APIRouter(prefix="/api/{thread_id}", tags=["uploads"])
 
-UTF8 = 'utf-8'
+UTF8 = "utf-8"
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 
 
@@ -40,13 +40,9 @@ def check_file_exist(thread_id: str, file_name: str) -> Path | None:
     return file
 
 
-@router.post(
-    "/upload",
-    response_model=UploadResponse
-)
+@router.post("/upload", response_model=UploadResponse)
 async def upload_files(
-        thread_id: str,
-        files: list[UploadFile] = File(...)
+    thread_id: str, files: list[UploadFile] = File(...)
 ) -> UploadResponse:
     """
     upload multiple file support image,pdf...
@@ -74,7 +70,12 @@ async def upload_files(
     try:
         for file in files:
             safe_filename = Path(file.filename).name
-            if not safe_filename or safe_filename in {".", ".."} or "/" in safe_filename or "\\" in safe_filename:
+            if (
+                not safe_filename
+                or safe_filename in {".", ".."}
+                or "/" in safe_filename
+                or "\\" in safe_filename
+            ):
                 logger.warning(f"Skipping file with unsafe filename: {file.filename!r}")
                 continue
 
@@ -98,13 +99,8 @@ async def upload_files(
     )
 
 
-@router.delete(
-    "/{file_name}"
-)
-async def remove_file(
-        thread_id: str,
-        file_name: str
-) -> dict[str, Any]:
+@router.delete("/{file_name}")
+async def remove_file(thread_id: str, file_name: str) -> dict[str, Any]:
     """
     delete single file
     args:
@@ -122,11 +118,5 @@ async def remove_file(
     file_exist = check_file_exist(thread_id, file_name)
     if file_exist:
         file_exist.unlink()
-        return {
-            "code": 200,
-            "msg": f'{file_exist.name} delete success'
-        }
-    return {
-        "code": 422,
-        "msg": "file not found"
-    }
+        return {"code": 200, "msg": f"{file_exist.name} delete success"}
+    return {"code": 422, "msg": "file not found"}
