@@ -1,25 +1,26 @@
 import re
-import logging
 from typing import Any
 from pathlib import Path
 from pydantic import BaseModel, Field
+from backend.tina.util.logger import Logger
 from backend.tina.config.paths import IMAGE_PATH
 from fastapi import APIRouter, HTTPException, File, UploadFile
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 router = APIRouter(prefix="/api/{thread_id}", tags=["uploads"])
 
 UTF8 = "utf-8"
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 
 
+# Upload Success Response Class
 class UploadResponse(BaseModel):
     code: int = Field(default=200, description="status code")
     success: bool
     img_list: list[dict[str, Any]] = Field(default_factory=list)
 
 
-# 获取上传文件夹路径
+# Obtain and verify the uploaded folder path.
 def get_upload_dir(thread_id: str) -> Path:
     upload_path = IMAGE_PATH / thread_id
     if not upload_path.exists():
@@ -27,7 +28,7 @@ def get_upload_dir(thread_id: str) -> Path:
     return upload_path
 
 
-# 查看文件是否存在
+# Check if the file exists.
 def check_file_exist(thread_id: str, file_name: str) -> Path | None:
     path = IMAGE_PATH / thread_id
     if not path.exists():
@@ -76,7 +77,7 @@ async def upload_files(
                 or "/" in safe_filename
                 or "\\" in safe_filename
             ):
-                logger.warning(f"Skipping file with unsafe filename: {file.filename!r}")
+                logger.info(f"Skipping file with unsafe filename: {file.filename!r}")
                 continue
 
             img = await file.read()

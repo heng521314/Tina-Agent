@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage, ToolMessage, AIMessage
-from typing import Any, Generator
-from backend.tina.models.base_factory import create_custom_agent, ModeContext
 from uuid import uuid4
+from typing import Any, Generator
+from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from langchain_core.messages import HumanMessage, ToolMessage, AIMessage
+from backend.tina.models.base_factory import create_custom_agent, ModeContext
 
 router = APIRouter(prefix="/api", tags=["models"])
 
@@ -94,14 +94,12 @@ async def chat_message(request: ChatRequest) -> Generator[StreamEvent, None, Non
       }
     }
     """
-    if not request.thread_id:
-        request.thread_id = str(uuid4())
-
     if not request.message:
         raise HTTPException(status_code=401, detail="message not empty")
 
     state = {"messages": [HumanMessage(request.message.strip())]}
     seen_ids: set[str] = set()
+    config = {"configurable": {"thread_id": request.thread_id}}
     cumulative_usage: dict[str, int] = {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -110,6 +108,7 @@ async def chat_message(request: ChatRequest) -> Generator[StreamEvent, None, Non
     agent = create_custom_agent()
     for chunk in agent.stream(
         state,
+        config=config,
         context=ModeContext(mode="build", thread_id=request.thread_id),
         stream_mode="values",
     ):

@@ -1,5 +1,4 @@
 import re
-import logging
 from pathlib import Path
 from zipfile import ZipFile
 from pydantic import Field, BaseModel
@@ -7,8 +6,9 @@ from tempfile import TemporaryDirectory
 from backend.tina.config.paths import SKILL_PATH
 from backend.tina.skills import Skill, load_skills, _validate_skill_frontmatter
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from backend.tina.util.logger import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 router = APIRouter(prefix="/api/skill", tags=["skill"])
 
 

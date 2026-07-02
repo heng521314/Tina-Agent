@@ -1,11 +1,17 @@
-"""模型工厂"""
+"""Model factory"""
 
+from typing import TypedDict
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from typing import TypedDict
 from backend.tina.config.model_config import parse_model_config
-from backend.tina.tools.base_tools import get_all_tool, glob
-from backend.tina.middleware import trim_messages, dynamic_prompt, interceptor_tool
+from backend.tina.tools.base_tools import get_all_tool
+from backend.tina.middleware import (
+    trim_messages,
+    dynamic_prompt,
+    interceptor_tool,
+    SessionMiddleware,
+)
+from langgraph.checkpoint.memory import InMemorySaver
 
 # get all tools
 tool_list = get_all_tool()
@@ -31,8 +37,10 @@ def create_custom_agent():
             dynamic_prompt,
             trim_messages,
             interceptor_tool,
+            SessionMiddleware(),
         ],
         system_prompt="""You are tina a useful assistant.""",
         context_schema=ModeContext,
+        checkpointer=InMemorySaver(),
     )
     return agent

@@ -1,7 +1,7 @@
 [project]
 name = "tina-agent"
 version = "0.1.0"
-description = "A self-hosted agent for your tasks"
+description = "A self-hosted agent that helps you complete any task"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,6 +12,9 @@ dependencies = [
     "langchain-mcp-adapters>=0.2.2",
     "langchain-openai>=1.1.12",
     "markdownify>=1.2.2",
-    "pymongo>=4.17.0",
+    "motor>=3.7.1",
     "readabilipy>=0.3.0",
 ]
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true

@@ -1,8 +1,8 @@
 """根据最近聊天记录生成个性化建议"""
 
-import logging
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+from backend.tina.util.logger import Logger
 from backend.tina.models.base_factory import create_chat_model
 
 default: list[str] = [
@@ -11,7 +11,7 @@ default: list[str] = [
     "好久不见",
 ]
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 router = APIRouter(prefix="/api/{thread_id}", tags=["suggestions"])
 
 
@@ -69,7 +69,7 @@ async def generate_suggestion(request: SuggestionRequest) -> SuggestionResponse:
         return SuggestionResponse(suggestions=default)
 
     N = request.N
-    logger.info("user message: ", request.messages)
+    logger.info(f"user message: {request.messages}")
     # 查询数据库获得最近聊天信息
     messages = _format_message(request.messages)
     # 发送给大模型生产建议

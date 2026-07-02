@@ -1,5 +1,4 @@
 import requests
-import logging
 from ddgs import DDGS
 from typing import Any
 from pathlib import Path
@@ -7,10 +6,10 @@ from datetime import datetime
 from langchain.tools import tool, BaseTool
 from markdownify import markdownify
 from backend.tina.skills import load_skills
-from backend.tina.config import SKILL_PATH
+from backend.tina.util.logger import Logger
 
 UTF8 = "utf-8"
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def run_cmd(command: list[str]) -> str:
@@ -53,12 +52,28 @@ def write_file(filename: str, content: str | bytes) -> str:
         return f"write file {filename} fail：{e}"
 
 
+@tool
+def edit_file(path: Path, old_text: str, new_text: str) -> str:
+    """
+    Edit the file and replace old content with new content.
+    """
+    if not path.exists():
+        return f"未发现文件"
+    try:
+        text = path.read_text(encoding=UTF8)
+        if old_text in text:
+            content = text.replace(old_text, new_text)
+            path.write_text(content, encoding=UTF8)
+            return "edit file complete"
+    except Exception as e:
+        return f"edit file fail: {e}"
+
+
 # 定义查询天气函数
 @tool
 def get_weather(city: str) -> str:
     """
-    通过wttr.in查询用户指定的天气信息
-    city: 查询的城市
+    Use wttr.in to check the weather information for a specified city.
     """
     logger.info(f"调用weather工具: {city}")
     headers = {
@@ -92,7 +107,7 @@ def get_weather(city: str) -> str:
         return f"错误:解析天气数据失败，可能是城市名称无效 - {e}"
 
 
-# 查询当前日期时间
+# get current time
 @tool
 def get_date() -> str:
     """query current datetime"""
@@ -129,19 +144,19 @@ def run_command(command: list[str]) -> str:
 
 @tool
 def web_search(
-    query: str,
+    keyword: str,
     max_results: int = 5,
 ) -> list[dict[str, Any]]:
     """
-    base query keyword search result.
+    Search the internet using keywords
     Args:
-        query: search keyword
+        keyword: search keyword
         max_results: query max num
     Returns:
         A list of dictionaries containing the search results.
     """
     ddgs = DDGS()
-    return ddgs.text(query=query, max_results=max_results, backend="bing")
+    return ddgs.text(query=keyword.strip(), max_results=max_results, backend="bing")
 
 
 @tool
@@ -149,7 +164,7 @@ def search_image(
     query: str, max_results: int = 5, color: str | None = None
 ) -> list[dict[str, Any]]:
     """
-    base query keyword search image.
+    Search the images using keywords
      Args:
          query: search keyword
          max_results: query max num
@@ -164,15 +179,12 @@ def search_image(
 
 
 @tool
-def send_request_response_markdown(url: str, method: str = "GET", **kwargs) -> Any:
+def send_request(url: str, method: str = "GET", **kwargs) -> Any:
     """
-    send request to url response text
+    Send a network request to the specified URL and obtain the response.
     args
         url: url
         method: method (e.g., GET, POST, PUT, DELETE) default GET
-        params: request parameter
-        json: request body
-        timeout: timeout default 5s
         kwargs: args
     """
     kwargs["headers"] = {
@@ -188,27 +200,6 @@ def send_request_response_markdown(url: str, method: str = "GET", **kwargs) -> A
 
 
 @tool
-def send_request_response_bytes(url: str, method: str = "GET", **kwargs) -> bytes:
-    """
-    send request to url
-    args
-        url: url
-        method: method (e.g., GET, POST, PUT, DELETE) default GET
-        kwargs: args
-    """
-    kwargs["headers"] = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    request = requests.request(
-        method=method,
-        url=url,
-        **kwargs,
-    )
-    request.raise_for_status()
-    return request.content
-
-
-@tool
 def load_skill(skill_name: str) -> str:
     """
     load the full content of a skill into the agents context
@@ -217,7 +208,7 @@ def load_skill(skill_name: str) -> str:
     """
     # 加载所有skill
     logger.info("调用load_skill工具")
-    skills = load_skills(SKILL_PATH)
+    skills = load_skills()
     for skill in skills:
         if skill.name == skill_name:
             return f"Loaded skill: {skill_name}\n\n{skill.content}"
@@ -230,10 +221,11 @@ def get_all_tool() -> list[BaseTool]:
         read_file,
         write_file,
         get_date,
+        edit_file,
         glob,
         get_weather,
         run_command,
         web_search,
-        send_request_response_markdown,
+        send_request,
         load_skill,
     ]
